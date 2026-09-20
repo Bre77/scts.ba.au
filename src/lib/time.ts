@@ -46,8 +46,21 @@ export interface Lease {
   remainingMs: number;
   /** How much of the stack's life is spent, clamped to 0..1. */
   spent: number;
-  /** Under a day left, so the countdown deserves attention. */
+  /** Near enough to the end that the countdown deserves attention. */
   endingSoon: boolean;
+}
+
+/**
+ * How close to termination counts as "ending soon".
+ *
+ * This has to scale with the lease. SCTS currently hands out 24-hour stacks, so
+ * a fixed one-day threshold would mark every stack urgent from the moment it was
+ * created, and the warning would carry no information. A share of the lease
+ * adapts, and the cap keeps a very long lease from warning for days.
+ */
+function warningWindow(totalMs: number): number {
+  if (!Number.isFinite(totalMs) || totalMs <= 0) return HOUR;
+  return Math.min(DAY, totalMs * 0.15);
 }
 
 export function readLease(createdAt: string, terminationDate: string, now: number): Lease {
@@ -63,5 +76,5 @@ export function readLease(createdAt: string, terminationDate: string, now: numbe
         ? 0
         : 1;
 
-  return { remainingMs, spent, endingSoon: remainingMs < DAY };
+  return { remainingMs, spent, endingSoon: remainingMs < warningWindow(total) };
 }

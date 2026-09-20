@@ -100,8 +100,8 @@ export function StackCard({ stack, apiKey, now, onDelete }: Props) {
 
       {stack.state === "CREATING" && (
         <p className="access hint">
-          Credentials appear here once the stack finishes provisioning. This page checks on it every
-          fifteen seconds.
+          Building for {formatDuration(now - new Date(stack.createdAt).getTime())}. Credentials
+          appear here once SCTS finishes provisioning; this page checks every fifteen seconds.
         </p>
       )}
 

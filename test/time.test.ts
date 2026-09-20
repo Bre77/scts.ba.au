@@ -45,12 +45,31 @@ test("readLease clamps a spent fraction to the bar's range", () => {
   assert.equal(readLease(start, end, Date.parse(end) + DAY).spent, 1, "already overdue");
 });
 
-test("readLease flags the final day", () => {
+test("readLease flags the end of a week-long lease", () => {
   const start = "2026-09-01T00:00:00Z";
   const end = "2026-09-08T00:00:00Z";
 
   assert.equal(readLease(start, end, Date.parse(end) - 25 * HOUR).endingSoon, false);
   assert.equal(readLease(start, end, Date.parse(end) - 4 * HOUR).endingSoon, true);
+});
+
+test("a fresh 24-hour stack is not treated as ending soon", () => {
+  // SCTS issues 24-hour leases, so an absolute one-day threshold would mark
+  // every stack urgent for its whole life.
+  const start = "2026-09-20T06:36:32Z";
+  const end = "2026-09-21T06:36:32Z";
+
+  assert.equal(readLease(start, end, Date.parse(start) + 42 * MIN).endingSoon, false, "42 minutes in");
+  assert.equal(readLease(start, end, Date.parse(end) - 12 * HOUR).endingSoon, false, "half spent");
+  assert.equal(readLease(start, end, Date.parse(end) - 5 * HOUR).endingSoon, false, "five hours left");
+  assert.equal(readLease(start, end, Date.parse(end) - 2 * HOUR).endingSoon, true, "two hours left");
+  assert.equal(readLease(start, end, Date.parse(end) - 10 * MIN).endingSoon, true, "nearly up");
+});
+
+test("the warning window survives an unusable lease length", () => {
+  const same = "2026-09-20T06:36:32Z";
+  assert.equal(readLease(same, same, Date.parse(same) - 2 * HOUR).endingSoon, false, "two hours early");
+  assert.equal(readLease(same, same, Date.parse(same) + 1).endingSoon, true, "already up");
 });
 
 test("readLease survives a termination date it cannot parse", () => {
