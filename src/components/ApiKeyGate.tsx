@@ -39,9 +39,19 @@ export function ApiKeyGate({ problem, onSubmit }: Props) {
         </p>
 
         <form onSubmit={submit}>
-          <label htmlFor="api-key" className="hint">
-            Dev Portal API key
-          </label>
+          <div className="label-row">
+            <label htmlFor="api-key" className="hint">
+              Dev Portal API key
+            </label>
+            <a
+              className="hint"
+              href="https://dev.splunk.com/developer-program/keys/"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              Get a key
+            </a>
+          </div>
           <input
             id="api-key"
             className="input"

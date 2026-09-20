@@ -82,6 +82,16 @@ src/components/    key gate, stack card, create and delete dialogs
 test/              node:test suites for the two bits of real logic
 ```
 
+## Not built: choosing a stack lifetime
+
+The API has no lifetime parameter. `CreateStackRequest` accepts only `splunkVersion`,
+and `terminationDate` comes back server-assigned, so how long a stack lives is entirely
+SCTS's decision. A "keep this for N hours" input was deliberately left out rather than
+shipped as a control that silently does nothing.
+
+If SCTS gains a lifetime field, the change is small: add it to `CreateStackRequest` in
+`src/types.ts`, and add the input to `CreateStackDialog` alongside the version select.
+
 ## Notes on behaviour
 
 - The list refreshes every 15 seconds only while a stack is `CREATING` or `STOPPING`,
