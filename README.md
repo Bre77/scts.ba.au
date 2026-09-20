@@ -61,13 +61,9 @@ npm run deploy
 
 That builds and runs `wrangler deploy`. There are no secrets or bindings to configure.
 
-To serve it from `scts.ba.au`, add the zone route in `wrangler.jsonc` once the DNS
-record exists (the config has it commented in place):
-
-```jsonc
-"routes": [{ "pattern": "scts.ba.au", "custom_domain": true }],
-"workers_dev": false
-```
+It deploys to `scts.ba.au` as a custom domain, with `workers_dev` off so that's the only
+way in. The Worker's same-origin check reads the origin off the incoming request, so it
+follows the domain without needing its own copy of the hostname.
 
 Rerun `npx wrangler types` after changing `wrangler.jsonc`.
 
