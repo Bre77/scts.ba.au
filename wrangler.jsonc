@@ -7,11 +7,7 @@
   "assets": {
     "binding": "ASSETS",
     "not_found_handling": "single-page-application"
-  }
-
-  // To serve this from scts.ba.au, add the zone route once the DNS record
-  // exists and remove the workers.dev subdomain:
-  //
-  // "routes": [{ "pattern": "scts.ba.au", "custom_domain": true }],
-  // "workers_dev": false
+  },
+  "routes": [{ "pattern": "scts.ba.au", "custom_domain": true }],
+  "workers_dev": false
 }
