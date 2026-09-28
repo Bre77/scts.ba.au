@@ -4,9 +4,17 @@ import { CreateStackDialog } from "./components/CreateStackDialog";
 import { DeleteStackDialog } from "./components/DeleteStackDialog";
 import { StackCard } from "./components/StackCard";
 import { ApiError, api } from "./api";
+import {
+  type AlertPermission,
+  alertFinished,
+  alertPermission,
+  askForAlerts,
+  describeFinish,
+  finishedBuilds,
+} from "./lib/notify";
 import { keyStore } from "./lib/storage";
 import { formatDurationLong, readLease } from "./lib/time";
-import type { StackSummary } from "./types";
+import type { StackState, StackSummary } from "./types";
 
 /** How often to re-check while a stack is still settling. */
 const BUSY_POLL_MS = 15_000;
@@ -23,8 +31,11 @@ export function App() {
   const [doomed, setDoomed] = useState<StackSummary | null>(null);
   const [toast, setToast] = useState("");
   const [now, setNow] = useState(() => Date.now());
+  const [alerts, setAlerts] = useState<AlertPermission>(alertPermission);
 
   const toastTimer = useRef<number | undefined>(undefined);
+  /** Each stack's state as of the last fetch, to spot builds that just finished. */
+  const lastSeen = useRef<Map<string, StackState>>(new Map());
 
   const announce = useCallback((message: string) => {
     setToast(message);
@@ -39,6 +50,7 @@ export function App() {
     keyStore.clear();
     setApiKey(null);
     setStacks(null);
+    lastSeen.current = new Map();
     setKeyProblem(reason);
   }, []);
 
@@ -46,8 +58,14 @@ export function App() {
     async (key: string) => {
       setRefreshing(true);
       try {
-        setStacks(await api.listStacks(key));
+        const fresh = await api.listStacks(key);
+        const finished = finishedBuilds(lastSeen.current, fresh);
+        lastSeen.current = new Map(fresh.map((s) => [s.id, s.state]));
+        setStacks(fresh);
         setError("");
+        finished.forEach(alertFinished);
+        if (finished.length === 1) announce(`${describeFinish(finished[0]).title}.`);
+        else if (finished.length > 1) announce(`${finished.length} stacks finished building.`);
       } catch (cause) {
         if (cause instanceof ApiError && cause.isAuthFailure) {
           rejectKey(cause.message);
@@ -58,7 +76,7 @@ export function App() {
         setRefreshing(false);
       }
     },
-    [rejectKey],
+    [rejectKey, announce],
   );
 
   // Load on arrival and whenever the key changes.
@@ -83,6 +101,16 @@ export function App() {
     const id = window.setInterval(() => setNow(Date.now()), TICK_MS);
     return () => window.clearInterval(id);
   }, []);
+
+  /** Ask for notification permission on a click, which is when browsers allow it. */
+  function enableAlerts() {
+    void askForAlerts().then(setAlerts);
+  }
+
+  function startCreating() {
+    enableAlerts();
+    setCreating(true);
+  }
 
   async function acceptKey(candidate: string) {
     // Prove the key works before committing it, so the gate can report why not.
@@ -132,7 +160,7 @@ export function App() {
             <p>{subhead(stacks, soonest)}</p>
           </div>
           {!blank && (
-            <button type="button" className="btn btn--primary" onClick={() => setCreating(true)}>
+            <button type="button" className="btn btn--primary" onClick={startCreating}>
               New stack
             </button>
           )}
@@ -151,7 +179,7 @@ export function App() {
           <div className="blank">
             <h2>No stacks yet</h2>
             <p>Create one and SCTS will have a Splunk instance waiting in a few minutes.</p>
-            <button type="button" className="btn btn--primary" onClick={() => setCreating(true)}>
+            <button type="button" className="btn btn--primary" onClick={startCreating}>
               Create your first stack
             </button>
           </div>
@@ -165,6 +193,8 @@ export function App() {
               apiKey={apiKey}
               now={now}
               onDelete={setDoomed}
+              alerts={alerts}
+              onEnableAlerts={enableAlerts}
             />
           ))}
         </div>

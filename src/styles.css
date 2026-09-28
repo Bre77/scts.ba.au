@@ -83,6 +83,18 @@ a {
   text-underline-offset: 0.2em;
 }
 
+/* A button that reads as an inline link. */
+.link {
+  font: inherit;
+  color: var(--focus);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
