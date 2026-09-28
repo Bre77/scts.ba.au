@@ -4,6 +4,7 @@ import type {
   StackDetail,
   StackListResponse,
   StackSummary,
+  StackTokenResponse,
   StackVersionsResponse,
 } from "./types";
 
@@ -44,6 +45,13 @@ function humanise(status: number, code: string, message: string): string {
       return "That stack no longer exists. It may have expired or been deleted.";
     case "InternalServerError":
       return "SCTS hit an internal error. Try again in a moment.";
+    case "StackNotReady":
+      return "The stack isn't ready yet, so there's no token to make.";
+    case "SplunkUnreachable":
+      return "Couldn't reach the stack's management port to make a token. Try again in a minute.";
+    case "SplunkRejected":
+    case "UnexpectedStackUrl":
+      return `Couldn't make an auth token: ${message}`;
     case "UpstreamUnavailable":
       return "Couldn't reach the SCTS API. Check your network, then try again.";
     default:
@@ -102,6 +110,16 @@ export const api = {
 
   async deleteStack(apiKey: string, stackId: string): Promise<void> {
     await request<void>(`/stacks/${encodeURIComponent(stackId)}`, apiKey, { method: "DELETE" });
+  },
+
+  /** Turns on token auth for the stack and returns its token, reusing one made earlier. */
+  async stackToken(apiKey: string, stackId: string): Promise<string> {
+    const body = await request<StackTokenResponse>(
+      `/stacks/${encodeURIComponent(stackId)}/token`,
+      apiKey,
+      { method: "POST" },
+    );
+    return body.token;
   },
 
   async listVersions(apiKey: string): Promise<StackVersionsResponse["versions"]> {
