@@ -75,7 +75,7 @@ src/api.ts         typed SCTS client; maps API error codes to readable messages
 src/types.ts       hand-mirrored from openapi.json
 src/lib/time.ts    lease maths behind the countdown bars
 src/components/    key gate, stack card, create and delete dialogs
-test/              node:test suites for the two bits of real logic
+test/              node:test suites for the bits of real logic
 ```
 
 ## Not built: choosing a stack lifetime

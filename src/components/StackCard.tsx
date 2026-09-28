@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Field } from "./Field";
 import { api } from "../api";
+import type { AlertPermission } from "../lib/notify";
 import { formatDuration, formatMoment, readLease } from "../lib/time";
 import type { StackAccessDetails, StackState, StackSummary } from "../types";
 
@@ -16,9 +17,11 @@ interface Props {
   apiKey: string;
   now: number;
   onDelete: (stack: StackSummary) => void;
+  alerts: AlertPermission;
+  onEnableAlerts: () => void;
 }
 
-export function StackCard({ stack, apiKey, now, onDelete }: Props) {
+export function StackCard({ stack, apiKey, now, onDelete, alerts, onEnableAlerts }: Props) {
   const [access, setAccess] = useState<StackAccessDetails | null>(null);
   const lease = readLease(stack.createdAt, stack.terminationDate, now);
 
@@ -102,6 +105,15 @@ export function StackCard({ stack, apiKey, now, onDelete }: Props) {
         <p className="access hint">
           Building for {formatDuration(now - new Date(stack.createdAt).getTime())}. Credentials
           appear here once SCTS finishes provisioning; this page checks every fifteen seconds.
+          {alerts === "granted" && " You'll get a notification when it's ready."}
+          {alerts === "default" && (
+            <>
+              {" "}
+              <button type="button" className="link" onClick={onEnableAlerts}>
+                Notify me when it's ready
+              </button>
+            </>
+          )}
         </p>
       )}
 
