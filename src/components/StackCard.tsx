@@ -105,12 +105,12 @@ export function StackCard({ stack, apiKey, now, onDelete, alerts, onEnableAlerts
         <p className="access hint">
           Building for {formatDuration(now - new Date(stack.createdAt).getTime())}. Credentials
           appear here once SCTS finishes provisioning; this page checks every fifteen seconds.
-          {alerts === "granted" && " You'll get a notification when it's ready."}
+          {alerts === "granted" && " You'll get a notification when it's ready, or if it fails."}
           {alerts === "default" && (
             <>
               {" "}
               <button type="button" className="link" onClick={onEnableAlerts}>
-                Notify me when it's ready
+                Notify me when it's done
               </button>
             </>
           )}

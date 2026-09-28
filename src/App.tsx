@@ -4,7 +4,14 @@ import { CreateStackDialog } from "./components/CreateStackDialog";
 import { DeleteStackDialog } from "./components/DeleteStackDialog";
 import { StackCard } from "./components/StackCard";
 import { ApiError, api } from "./api";
-import { type AlertPermission, alertPermission, alertReady, askForAlerts, newlyReady } from "./lib/notify";
+import {
+  type AlertPermission,
+  alertFinished,
+  alertPermission,
+  askForAlerts,
+  describeFinish,
+  finishedBuilds,
+} from "./lib/notify";
 import { keyStore } from "./lib/storage";
 import { formatDurationLong, readLease } from "./lib/time";
 import type { StackState, StackSummary } from "./types";
@@ -52,13 +59,13 @@ export function App() {
       setRefreshing(true);
       try {
         const fresh = await api.listStacks(key);
-        const ready = newlyReady(lastSeen.current, fresh);
+        const finished = finishedBuilds(lastSeen.current, fresh);
         lastSeen.current = new Map(fresh.map((s) => [s.id, s.state]));
         setStacks(fresh);
         setError("");
-        ready.forEach(alertReady);
-        if (ready.length === 1) announce(`${ready[0].name} is ready.`);
-        else if (ready.length > 1) announce(`${ready.length} stacks are ready.`);
+        finished.forEach(alertFinished);
+        if (finished.length === 1) announce(`${describeFinish(finished[0]).title}.`);
+        else if (finished.length > 1) announce(`${finished.length} stacks finished building.`);
       } catch (cause) {
         if (cause instanceof ApiError && cause.isAuthFailure) {
           rejectKey(cause.message);

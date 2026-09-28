@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { newlyReady } from "../src/lib/notify.ts";
+import { describeFinish, finishedBuilds } from "../src/lib/notify.ts";
 import type { StackState, StackSummary } from "../src/types.ts";
 
 function stack(id: string, state: StackState): StackSummary {
@@ -14,7 +14,7 @@ function stack(id: string, state: StackState): StackSummary {
   };
 }
 
-test("newlyReady reports stacks that went from creating to running", () => {
+test("finishedBuilds reports stacks that went from creating to running", () => {
   const before = new Map<string, StackState>([
     ["a", "CREATING"],
     ["b", "CREATING"],
@@ -22,16 +22,28 @@ test("newlyReady reports stacks that went from creating to running", () => {
   ]);
   const after = [stack("a", "RUNNING"), stack("b", "CREATING"), stack("c", "RUNNING")];
   assert.deepEqual(
-    newlyReady(before, after).map((s) => s.id),
+    finishedBuilds(before, after).map((s) => s.id),
     ["a"],
   );
 });
 
-test("newlyReady stays quiet on a first load", () => {
-  assert.deepEqual(newlyReady(new Map(), [stack("a", "RUNNING")]), []);
+test("finishedBuilds stays quiet on a first load", () => {
+  assert.deepEqual(finishedBuilds(new Map(), [stack("a", "RUNNING")]), []);
 });
 
-test("newlyReady ignores failed builds", () => {
-  const before = new Map<string, StackState>([["a", "CREATING"]]);
-  assert.deepEqual(newlyReady(before, [stack("a", "ERROR")]), []);
+test("finishedBuilds reports failed builds too", () => {
+  const before = new Map<string, StackState>([
+    ["a", "CREATING"],
+    ["b", "RUNNING"],
+  ]);
+  const after = [stack("a", "ERROR"), stack("b", "ERROR")];
+  assert.deepEqual(
+    finishedBuilds(before, after).map((s) => s.id),
+    ["a"],
+  );
+});
+
+test("describeFinish words success and failure differently", () => {
+  assert.equal(describeFinish(stack("a", "RUNNING")).title, "stack-a is ready");
+  assert.equal(describeFinish(stack("a", "ERROR")).title, "stack-a failed to build");
 });
