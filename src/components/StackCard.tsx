@@ -23,6 +23,9 @@ interface Props {
 
 export function StackCard({ stack, apiKey, now, onDelete, alerts, onEnableAlerts }: Props) {
   const [access, setAccess] = useState<StackAccessDetails | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [tokenError, setTokenError] = useState("");
+  const [tokenAttempt, setTokenAttempt] = useState(0);
   const lease = readLease(stack.createdAt, stack.terminationDate, now);
 
   // Credentials only exist once the stack is up, so ask for them then.
@@ -43,6 +46,27 @@ export function StackCard({ stack, apiKey, now, onDelete, alerts, onEnableAlerts
       cancelled = true;
     };
   }, [stack.state, stack.id, apiKey, access]);
+
+  // With credentials in hand, have the worker enable token auth and fetch the token.
+  // It keeps the token on the stack, so a reload gets the same one back.
+  useEffect(() => {
+    if (stack.state !== "RUNNING" || access === null || token !== null) return;
+
+    let cancelled = false;
+    setTokenError("");
+    api
+      .stackToken(apiKey, stack.id)
+      .then((value) => {
+        if (!cancelled) setToken(value);
+      })
+      .catch((cause) => {
+        if (!cancelled) setTokenError(cause instanceof Error ? cause.message : "Couldn't make a token.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [stack.state, stack.id, apiKey, access, token, tokenAttempt]);
 
   const busy = stack.state === "CREATING" || stack.state === "STOPPING";
   const spentPercent = Math.round(lease.spent * 100);
@@ -98,6 +122,22 @@ export function StackCard({ stack, apiKey, now, onDelete, alerts, onEnableAlerts
           <Field label="Splunk web" value={access.url} href={access.url} />
           <Field label="Username" value={access.username} />
           <Field label="Password" value={access.password} secret />
+          {token ? (
+            <Field label="Auth token" value={token} secret />
+          ) : tokenError ? (
+            <div className="field">
+              <span className="field__label">Auth token</span>
+              <span className="hint">{tokenError}</span>
+              <button type="button" className="btn btn--quiet" onClick={() => setTokenAttempt((n) => n + 1)}>
+                Retry
+              </button>
+            </div>
+          ) : (
+            <div className="field">
+              <span className="field__label">Auth token</span>
+              <span className="hint">Enabling token authentication…</span>
+            </div>
+          )}
         </div>
       )}
 

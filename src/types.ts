@@ -43,6 +43,11 @@ export interface CreateStackRequest {
   splunkVersion?: string;
 }
 
+/** From the worker's own `POST /v1/stacks/{id}/token`, not an SCTS route. */
+export interface StackTokenResponse {
+  token: string;
+}
+
 /** The API's error envelope. `code` is extensible, so unknown values are expected. */
 export interface ServiceError {
   code: string;

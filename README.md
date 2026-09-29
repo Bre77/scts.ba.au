@@ -19,13 +19,33 @@ browser → /api/v1/stacks → worker → https://scts.dev.splunk.com/v1/stacks
 The Worker is deliberately narrow:
 
 - **Route allowlist.** Only the five method/path pairs SCTS actually exposes are
-  forwarded. Anything else gets a `404` without a request leaving Cloudflare, so this
+  forwarded. The one extra route, for [auth tokens](#auth-tokens), is handled by the
+  Worker itself. Anything else gets a `404` without a request leaving Cloudflare, so this
   can't be used as an open proxy.
 - **Header allowlist.** Only `Authorization`, `Content-Type` and `Accept` go upstream.
   The response is rebuilt, so no upstream cookies or caching headers come back.
 - **Same-origin only.** A request carrying a foreign `Origin` is refused.
 - **Nothing is retained.** The API key passes through in memory. It is never stored,
   cached, or logged, and the Worker holds no secrets of its own.
+
+## Auth tokens
+
+Once a stack is `RUNNING`, the card also shows an auth token for the stack's user. The
+browser calls `POST /api/v1/stacks/{id}/token`, which is the Worker's own route, not an
+SCTS one. The Worker then:
+
+1. fetches the stack from SCTS with the caller's key, to get its URL and credentials
+2. signs in to the stack's REST API (`https://<host>:8089`) with those credentials
+3. returns the token it stored on an earlier visit, if there is one
+4. otherwise turns on token auth (`admin/token-auth/tokens_auth`), creates a token
+   (`authorization/tokens`), and saves it in the stack's `storage/passwords` under the
+   realm `scts-ui`
+
+The browser only sends a stack id. The host and credentials come from SCTS, and only
+`https://*.splunkcloud.com` hosts are contacted, so this route can't be pointed anywhere
+else. Keeping the token on the stack means a reload, or another browser, gets the same
+token back, and the Worker still stores nothing. If saving it fails, the token still
+works, but each reload makes a new one.
 
 ## Where the API key lives
 
